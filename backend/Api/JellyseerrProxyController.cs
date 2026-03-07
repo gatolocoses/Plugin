@@ -56,9 +56,9 @@ public class JellyseerrProxyController : ControllerBase
             return Unauthorized(new { error = "User not authenticated" });
         }
 
-        if (string.IsNullOrEmpty(request.Username) || string.IsNullOrEmpty(request.Password))
+        if (string.IsNullOrEmpty(request.Username))
         {
-            return BadRequest(new { error = "Username and password are required" });
+            return BadRequest(new { error = "Username is required" });
         }
 
         var result = await _sessionService.AuthenticateAsync(

@@ -211,7 +211,7 @@ var Settings = {
                 '</div>' +
                 '<div style="margin-bottom:12px">' +
                     '<label class="moonfin-input-label">Password</label>' +
-                    '<input type="password" id="jellyseerr-settings-password" autocomplete="current-password" class="moonfin-panel-input">' +
+                    '<input type="password" id="jellyseerr-settings-password" autocomplete="current-password" class="moonfin-panel-input" placeholder="Leave empty if no password">' +
                 '</div>' +
                 '<button class="moonfin-jellyseerr-settings-login-btn moonfin-panel-btn moonfin-panel-btn-primary">Sign In</button>' +
             '</div>' +
@@ -878,6 +878,8 @@ var Settings = {
                     ? 'Enter your local Jellyseerr account credentials. Your session is stored on the server so all devices stay signed in.'
                     : 'Enter your Jellyfin credentials to sign in to Jellyseerr. Your session is stored on the server so all devices stay signed in.';
                 if (usernameLabel) usernameLabel.textContent = isLocal ? 'Email' : 'Username';
+                var passwordField = wrapper.querySelector('#jellyseerr-settings-password');
+                if (passwordField) passwordField.placeholder = isLocal ? '' : 'Leave empty if no password';
             });
         }
 
@@ -907,8 +909,16 @@ var Settings = {
         var usernameVal = username ? username.value : '';
         var passwordVal = password ? password.value : '';
 
-        if (!usernameVal || !passwordVal) {
-            errorEl.textContent = 'Please enter your username and password.';
+        var activeAuthBtn = wrapper.querySelector('.moonfin-segmented-btn-active[data-auth-type]');
+        var authType = activeAuthBtn ? activeAuthBtn.getAttribute('data-auth-type') : 'jellyfin';
+        var isLocalAuth = authType === 'local';
+        if (!usernameVal) {
+            errorEl.textContent = isLocalAuth ? 'Please enter your email.' : 'Please enter your username.';
+            errorEl.style.display = 'block';
+            return;
+        }
+        if (isLocalAuth && !passwordVal) {
+            errorEl.textContent = 'Please enter your password.';
             errorEl.style.display = 'block';
             return;
         }
@@ -916,9 +926,6 @@ var Settings = {
         submitBtn.disabled = true;
         submitBtn.textContent = 'Signing in...';
         errorEl.style.display = 'none';
-
-        var activeAuthBtn = wrapper.querySelector('.moonfin-segmented-btn-active[data-auth-type]');
-        var authType = activeAuthBtn ? activeAuthBtn.getAttribute('data-auth-type') : 'jellyfin';
 
         Jellyseerr.ssoLogin(usernameVal, passwordVal, authType).then(function(result) {
             if (result.success) {

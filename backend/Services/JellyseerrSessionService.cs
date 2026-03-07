@@ -60,7 +60,7 @@ public class JellyseerrSessionService
     /// <param name="password">The password.</param>
     /// <param name="authType">Auth type: "jellyfin" (default) or "local" for a native Jellyseerr account.</param>
     /// <returns>The authenticated Jellyseerr user info, or null on failure.</returns>
-    public async Task<JellyseerrAuthResult?> AuthenticateAsync(Guid userId, string username, string password, string? authType = null)
+    public async Task<JellyseerrAuthResult?> AuthenticateAsync(Guid userId, string username, string? password, string? authType = null)
     {
         var config = MoonfinPlugin.Instance?.Configuration;
         var jellyseerrUrl = config?.GetEffectiveJellyseerrUrl();
@@ -73,7 +73,6 @@ public class JellyseerrSessionService
 
         try
         {
-            // Use a handler that captures cookies
             var cookieContainer = new CookieContainer();
             using var handler = new HttpClientHandler
             {
@@ -90,7 +89,7 @@ public class JellyseerrSessionService
 
             var authPayload = isLocal
                 ? (object)new { email = username, password = password }
-                : new { username = username, password = password };
+                : new { username = username, password = password ?? string.Empty };
 
             var content = new StringContent(
                 JsonSerializer.Serialize(authPayload),
