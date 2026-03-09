@@ -726,5 +726,19 @@ const Storage = {
             error: this.syncState.lastSyncError,
             syncing: this.syncState.syncing
         };
+    },
+
+    resetForNewUser() {
+        localStorage.removeItem(this.PROFILES_KEY);
+        localStorage.removeItem(this.STORAGE_KEY);
+        localStorage.removeItem(this.SNAPSHOT_KEY);
+        this._initialSyncDone = false;
+        this.syncState.serverAvailable = null;
+        this.syncState.lastSyncTime = null;
+        this.syncState.lastSyncError = null;
+        this.syncState.syncing = false;
+        this.syncState.mdblistAvailable = false;
+        this.syncState.tmdbAvailable = false;
+        this.syncState.adminDefaults = null;
     }
 };

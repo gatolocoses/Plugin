@@ -2,6 +2,7 @@ const Plugin = {
     version: '1.5.1',
     name: 'Moonfin Web Plugin',
     initialized: false,
+    _currentUserId: null,
 
     isHomePage() {
         const hash = window.location.hash.toLowerCase();
@@ -82,6 +83,8 @@ const Plugin = {
 
         this.loadStyles();
         this.applyDeviceClasses();
+
+        this._currentUserId = this._getLoggedInUserId();
 
         Storage.initSync();
 
@@ -1094,6 +1097,8 @@ const Plugin = {
             return;
         }
 
+        if (this.checkUserChanged()) return;
+
         if (Navbar.container) {
             var navbarEnabled = Storage.get('navbarEnabled') && Storage.get('navbarPosition') !== 'left';
             Navbar.container.classList.toggle('hidden', !navbarEnabled);
@@ -1237,12 +1242,57 @@ const Plugin = {
         });
     },
 
+    _getLoggedInUserId() {
+        try {
+            var api = window.ApiClient || (window.connectionManager && window.connectionManager.currentApiClient());
+            return api?.getCurrentUserId?.() || null;
+        } catch (e) {
+            return null;
+        }
+    },
+
+    checkUserChanged() {
+        var newUserId = this._getLoggedInUserId();
+        if (!newUserId || !this._currentUserId) return false;
+        if (newUserId === this._currentUserId) return false;
+
+        this.resetForNewUser();
+        return true;
+    },
+
+    resetForNewUser() {
+        console.log('[Moonfin] User changed, resetting plugin session...');
+
+        if (Navbar.initialized) Navbar.destroy();
+        if (Sidebar.initialized) Sidebar.destroy();
+        if (MediaBar.initialized) MediaBar.destroy();
+        Jellyseerr.destroy();
+        Jellyseerr.ssoStatus = null;
+        Jellyseerr.config = null;
+        if (Details.isVisible) Details.hide(true);
+        if (Details.container) { Details.container.remove(); Details.container = null; }
+        if (Genres.isVisible) Genres.close();
+        if (Library.isVisible) Library.close();
+        if (Settings.isOpen) Settings.hide(true);
+        document.querySelectorAll('.moonfin-seasonal-effect').forEach(el => el.remove());
+        if (this._seasonalState) { this._seasonalState.stop(); this._seasonalState = null; }
+
+        Storage.resetForNewUser();
+
+        this._currentUserId = null;
+        this._overlayHistoryDepth = 0;
+        this.initialized = false;
+
+        this.init();
+    },
+
     destroy() {
         Navbar.destroy();
         MediaBar.destroy();
         Jellyseerr.destroy();
         document.querySelectorAll('.moonfin-seasonal-effect').forEach(el => el.remove());
         this.initialized = false;
+        this._currentUserId = null;
         console.log('[Moonfin] Plugin destroyed');
     }
 };
@@ -1285,8 +1335,12 @@ const Plugin = {
         }
         
         window.addEventListener('hashchange', () => {
-            if (isUserLoggedIn() && !Plugin.initialized) {
-                Plugin.init();
+            if (isUserLoggedIn()) {
+                if (Plugin.initialized) {
+                    Plugin.checkUserChanged();
+                } else {
+                    Plugin.init();
+                }
             }
         });
     }
